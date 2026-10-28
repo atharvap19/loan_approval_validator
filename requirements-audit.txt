@@ -1,0 +1,7 @@
+numpy>=1.24
+onnxruntime>=1.16
+pandas>=2.0
+matplotlib>=3.7
+nbformat>=5.9
+nbconvert>=7.0
+ipykernel>=6.0

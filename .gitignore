@@ -1,0 +1,6 @@
+# Local Python environment
+.venv/
+
+# Auto-generated caches
+__pycache__/
+.ipynb_checkpoints/
