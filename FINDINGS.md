@@ -12,11 +12,9 @@ The model has learned four hidden "auto-reject" rules from the old decisions it 
 
 None of these is a sensible credit reason, and together they cause about **1 in 4 of the model's
 rejections** on the validation set. The 98% accuracy did not catch this because the validation labels
-contain the same rules, so the model is scored as "correct" for copying them. In the other direction,
-the model is **too lenient on affordability**: it approves some loans whose EMI takes 80–100% of the
-applicant's income, which the old credit team always rejected. It also gives decisions for impossible
-inputs such as zero income. **My verdict: it should not stay in production as an automatic
-approve/reject system.**
+contain the same rules, so the model is scored as "correct" for copying them. The model also gives
+decisions for impossible inputs such as zero income. **My verdict: it should not stay in production
+as an automatic approve/reject system.**
 
 ## How I approached it
 I used the model only through `predict_batch` and never opened the model file.
@@ -34,6 +32,7 @@ I used the model only through `predict_batch` and never opened the model file.
 5. For every rule I found, I went back and checked whether the labels contained it too.
 6. **Checked the other direction.** Steps 3–5 look for people wrongly *rejected*. I also tested
    whether the model wrongly *approves* loans that people clearly can't afford (`10_wrong_approvals.ipynb`).
+   It mostly handles this correctly (see "Things I tested that turned out fine").
 
 Each experiment is a notebook in `experiments/` with its results already saved inside. To re-run them all: `python experiments/run_all.py` (about 40 seconds).
 `LAB_NOTEBOOK.md` records each idea I tested, including the ones that turned out wrong.
@@ -291,46 +290,6 @@ to fix.
 
 ---
 
-## Finding 7: Some loans the applicant can't afford are approved
-
-**What it is:** When the EMI takes 80–100% of an applicant's monthly income, the model still approves
-some of them, mostly lower-income applicants with high credit scores. The old credit team rejected
-**every** such case. Here the model is too **lenient**, not too strict.
-
-**Evidence:**
-- Experiment design: the 245 applicants the model approves. I changed **only** the loan amount so that
-  the EMI becomes a set share of their monthly income, keeping everything else the same and staying
-  within the loan sizes seen in the data (≤ ₹40L). The EMI uses an **assumed 14% yearly interest
-  rate**, because the model is never told the rate.
-- Results:
-
-| EMI as % of monthly income | 30% | 50% | 60% | 80% | 100% |
-|---|---|---|---|---|---|
-| Still approved by the model | 92% | 69% | 53% | **20%** | **7.8%** |
-
-  In the old decisions, **every** applicant with an EMI above 80% of income was rejected (52 of 52).
-  The 17 approved with an EMI equal to their whole income have a median income of about ₹29,000/month,
-  credit scores of 747–885, and 1–3 other active loans.
-- Code: `experiments/10_wrong_approvals.ipynb`
-
-**How I found it:** Findings 1–4 are all about people wrongly rejected, so I tested the opposite
-direction. The labels showed a clear affordability rule (EMI over 80% of income → always rejected), so
-I checked whether the model had learned it.
-
-**Likely cause:** Affordability depends on a **ratio** of two inputs (loan and income), plus tenure.
-The model only sees the raw numbers and learned the ratio roughly, so a high credit score can outweigh
-an unaffordable EMI.
-
-**Impact:** Some applicants get loans that would take most or all of their income. That means a high
-risk of default for the lender and of over-indebtedness for the customer. It's the people least able
-to cope (low income, already borrowing) who slip through.
-
-**Fix:** Calculate the EMI-to-income ratio explicitly and give it to the model as an input, and add a
-hard affordability cap (e.g. EMI plus existing EMIs ≤ 50–60% of income) as a rule **before** the model
-can approve.
-
----
-
 ## Things I tested that turned out fine
 - **Credit score works correctly.** Higher score means fewer rejections (100% at 500, 27% at 900).
 - **Loan amount works correctly.** Bigger loan means more rejections (34% at ₹50k, nearly 100% at ₹40L).
@@ -342,6 +301,11 @@ can approve.
 - **The model is not jumpy.** On 400 random applicants, +₹1 income changed 0 decisions, +1 credit
   point 0.5%, +₹5,000 loan 0.5%, pincode +1 0.25% (`08_bad_inputs.ipynb`).
 - **The data itself is clean.** No duplicate rows, no impossible values (`01_eda.ipynb`).
+- **Affordability is mostly handled correctly.** For approved applicants, raising only the loan so the
+  EMI takes 30% → 100% of income cuts approvals from 92% to 8%, and no real approved applicant has an
+  EMI above 80% of income. One weak spot: at extreme EMIs, a high credit score can still get a loan
+  approved, while the old decisions rejected all such cases. The EMI assumes a 14% interest rate
+  (`10_wrong_approvals.ipynb`).
 
 ## Open questions
 - What did "reject" mean in the old process for high earners and for the 41xxxx area: a real decline,
@@ -349,20 +313,21 @@ can approve.
 - Loan amounts in the data stop at exactly ₹40 lakh, and a ₹1 crore request is always rejected. Is
   this a product limit or another hidden rule?
 - With only 600 labelled rows, rarer combinations of inputs may hide more rules that I could not see.
+- Does the model approve applicants who are already over-borrowed? It can't see the interest rate or
+  the EMIs of their other loans, so this couldn't be fully tested.
 
 ## Verdict
 **No, the model should not stay in production making automatic decisions.** About 1 in 4 of its
 rejections happen for reasons that have nothing to do with whether the person can repay. The people
 hit are high earners, people with no existing loans, people from one region, and young people on
-longer loans, and each of them is locked out for 90 days. At the same time it approves some loans
-people can't afford. The 98% accuracy gave false confidence because it was measured against the same
-flawed decisions.
+longer loans, and each of them is locked out for 90 days. The 98% accuracy gave false confidence
+because it was measured against the same flawed decisions.
 
 **What I would do this week:**
 1. Stop automatic rejections. Send model rejections to a human reviewer, or at least those in the
    four affected groups, and lift their 90-day lock.
 2. Re-check recent rejections in those groups and contact the people who were wrongly declined.
-3. Add input checks and a hard affordability cap (EMI share of income) before the model can approve.
+3. Add input checks before the model.
 4. Work with the credit team to find where each rule came from. Then fix the labels (ideally using
    real repayment data), drop pincode as a number, retrain, and run the behaviour tests in
    `experiments/` before every release.

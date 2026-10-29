@@ -98,4 +98,8 @@ names the notebook that produces its numbers. To re-run everything:
 - **Result:** still approved 92% at 30%, 53% at 60%, **20% at 80%**, **7.8% at 100%**. The 17 approved at
   100% are lower-income (median ₹29k) with high credit scores (747–885).
 - **Side checks:** a credit score of 550–600 is handled sensibly (0–6.5% approved). That part is fine.
-- **Conclusion:** **false.** The model is too lenient on affordability. → Finding 7.
+- **Reality check:** among the 245 real approved applicants, the highest EMI share is 79%. Nobody in the
+  real data is approved above 80%; the weak spot only shows up when loans are artificially inflated.
+- **Conclusion:** **mostly true.** Approvals fall steadily as the EMI rises, with one weak spot at extreme
+  EMIs when the credit score is high. Not strong enough to count as a finding, so it's recorded in
+  "Things I tested that turned out fine" in FINDINGS.md.
