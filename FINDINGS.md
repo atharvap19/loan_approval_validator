@@ -308,13 +308,14 @@ to fix.
   (`10_wrong_approvals.ipynb`).
 
 ## Open questions
-- What did "reject" mean in the old process for high earners and for the 41xxxx area: a real decline,
-  or a hand-off to another team? Only the credit team or the raw application records can tell us.
-- Loan amounts in the data stop at exactly ₹40 lakh, and a ₹1 crore request is always rejected. Is
-  this a product limit or another hidden rule?
-- With only 600 labelled rows, rarer combinations of inputs may hide more rules that I could not see.
-- Does the model approve applicants who are already over-borrowed? It can't see the interest rate or
-  the EMIs of their other loans, so this couldn't be fully tested.
+- **Why were high earners and people in the 41xxxx area always rejected in the past?** Was it a real
+  "no", or were they sent to another team? The credit team would know.
+- **Is ₹40 lakh the maximum loan?** No loan in the data is above ₹40 lakh, and the model rejects bigger
+  requests. This could be a product limit or another hidden rule.
+- **Are there more hidden rules?** 600 applications is a small sample, so rare cases may hide rules I
+  couldn't see.
+- **Does the model approve people who already have too much debt?** It doesn't see the interest rate
+  or the EMIs on their other loans, so I couldn't test this.
 
 ## Verdict
 **No, the model should not stay in production making automatic decisions.** About 1 in 4 of its
