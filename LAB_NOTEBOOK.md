@@ -29,6 +29,10 @@ names the notebook that produces its numbers. To re-run everything:
 - **Test:** all 600 applicants, only income changed (₹15k–₹20L).
 - **Result:** rejections fall from 80% to 38% up to ₹2.5L, then rise to 64% at ₹3L and 100% from ₹3.5L.
   The median flip point is ₹3,05,000.
+- **Follow-up idea:** maybe a strong credit score protects high earners.
+  - **Test:** credit score (650–900) × income (₹1L–₹10L), same 600 applicants.
+  - **Result:** **false.** Below ₹2.5L a better score helps (45% → 26% rejected). From ₹3.5L, 98–100%
+    are rejected at every credit score, even 900.
 - **Conclusion:** **false.** → Finding 1.
 
 ### 4. Zero existing loans is not a reason to reject (`04_existing_loans.ipynb`)
@@ -86,3 +90,12 @@ names the notebook that produces its numbers. To re-run everything:
 - **Result:** 91 of 355 rejections (25.6%) are caused by one flaw alone. On those 91 the model still
   agrees with the labels 98.9% of the time.
 - **Conclusion:** **false.** Accuracy rewards copying the flaws. → Finding 5.
+
+### 10. The model never approves loans people can't afford (`10_wrong_approvals.ipynb`)
+- **Why:** everything so far looked at wrong *rejections*. I checked the other direction.
+- **Labels:** EMI above 80% of income (assuming 14% interest) → 52/52 rejected. A clear affordability rule.
+- **Test:** for the 245 approved applicants, changed only the loan so that EMI = 30% … 150% of income.
+- **Result:** still approved 92% at 30%, 53% at 60%, **20% at 80%**, **7.8% at 100%**. The 17 approved at
+  100% are lower-income (median ₹29k) with high credit scores (747–885).
+- **Side checks:** a credit score of 550–600 is handled sensibly (0–6.5% approved). That part is fine.
+- **Conclusion:** **false.** The model is too lenient on affordability. → Finding 7.

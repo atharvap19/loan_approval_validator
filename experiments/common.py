@@ -33,12 +33,17 @@ def sweep(df, column, values, probe_file=None):
     return the reject rate and average risk at each value."""
     probes = []
     for v in values:
-        p = df.assign(**{column: v})
+        # drop the original label: it describes the real applicant, not this probe
+        p = df.drop(columns="decision", errors="ignore").assign(**{column: v})
         p["risk_score"], p["rejected"] = predict(p)
         probes.append(p)
     probes = pd.concat(probes)
     if probe_file:
-        probes.to_csv(os.path.join(ROOT, "probes", probe_file), index=False)
+        try:
+            probes.to_csv(os.path.join(ROOT, "probes", probe_file), index=False)
+        except PermissionError:
+            print(f"WARNING: could not save probes/{probe_file} (is it open in another program?). "
+                  "Results below are unaffected.")
     return (probes.groupby(column)
             .agg(reject_rate=("rejected", "mean"), avg_risk=("risk_score", "mean"))
             .round(3).reset_index())
